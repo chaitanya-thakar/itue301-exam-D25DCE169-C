@@ -32,32 +32,38 @@
 ## 📐 System Architecture & Data Flow
 
 ```mermaid
-graph TD
-    subgraph Client ["Client Layer (React 18 + Vite)"]
-        P_UI["👤 Patient Portal<br/>(/my-appointments, /booking)"]
-        D_UI["🩺 Doctor Portal<br/>(/doctor-dashboard)"]
-        A_UI["🛡️ Admin Control Center<br/>(/admin)"]
-        HB["🟢 Live System Health Monitor"]
+flowchart TD
+    subgraph Frontend["Client Layer (React 18 + Vite)"]
+        direction TB
+        UI_Patient["👤 Patient Portal\n(/my-appointments, /booking)"]
+        UI_Doctor["🩺 Doctor Portal\n(/doctor-dashboard)"]
+        UI_Admin["🛡️ Admin Panel\n(/admin)"]
+        UI_Health["🟢 Live Health Monitor\n(/components/SystemStatusBanner)"]
     end
 
-    subgraph Server ["Server Layer (Express.js REST API)"]
-        RL["📋 requestLogger Middleware<br/>[METHOD] [PATH] [TIMESTAMP]"]
-        Routes["REST Endpoints<br/>/api/v1/doctors<br/>/api/v1/appointments<br/>/api/v1/auth<br/>/api/v1/admin"]
-        EH["🛡️ Structured Global Error Handler"]
+    subgraph Backend["Server Layer (Express.js REST API)"]
+        direction TB
+        MW_Logger["📋 requestLogger Middleware\n[METHOD] [PATH] [TIMESTAMP]"]
+        API_Routes["🔀 REST API Endpoints\n• /api/v1/doctors\n• /api/v1/appointments\n• /api/v1/auth\n• /api/v1/health"]
+        MW_Error["🛡️ Global Error Handler\nStructured JSON Formatter"]
     end
 
-    subgraph Storage ["Persistence Layer (Dual-Mode)"]
-        MDB[("🍃 MongoDB (Mongoose)")]
-        MEM[("⚡ In-Memory Fallback Engine")]
+    subgraph Database["Persistence Layer (Dual-Mode Engine)"]
+        direction TB
+        DB_Mongo[("🍃 MongoDB Server\n(Mongoose ODM)")]
+        DB_Memory[("⚡ In-Memory Fallback\n(Auto-Active)")]
     end
 
-    Client -->|HTTP / JSON Requests| RL
-    RL --> Routes
-    Routes -->|Primary| MDB
-    Routes -.->|Automatic Fallback| MEM
-    Routes -->|Error Propagation| EH
-    EH -->|Structured JSON Error| Client
-    HB -.->|Health Check Ping (30s)| Routes
+    UI_Patient -->|HTTP POST/GET Requests| MW_Logger
+    UI_Doctor -->|HTTP PATCH Status Updates| MW_Logger
+    UI_Admin -->|HTTP CRUD Operations| MW_Logger
+    UI_Health -.->|Periodic Health Ping| API_Routes
+
+    MW_Logger --> API_Routes
+    API_Routes -->|Primary Mode| DB_Mongo
+    API_Routes -.->|Offline Mode| DB_Memory
+    API_Routes -->|Validation / Server Error| MW_Error
+    MW_Error -->|Structured Error Response| UI_Patient
 ```
 
 ---
