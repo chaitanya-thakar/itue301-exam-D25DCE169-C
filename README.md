@@ -11,7 +11,10 @@
 **CHAROTAR UNIVERSITY OF SCIENCE AND TECHNOLOGY**  
 **Faculty of Technology and Engineering — CSPIT-IT**  
 **ITUE301 — Advanced Web Development Frameworks Practical Examination**  
-**SET A — Hospital Appointment Management System**
+**SET A — Hospital Appointment Management System**  
+
+**Candidate**: `chaitanya-thakar` | **ID**: `d25dce169` | **Batch**: `C`  
+**Repository**: [`https://github.com/chaitanya-thakar/itue301-exam-d25dce169-C`](https://github.com/chaitanya-thakar/itue301-exam-d25dce169-C)
 
 </div>
 
