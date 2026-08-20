@@ -31,55 +31,44 @@
 
 ## 📐 System Architecture & Data Flow
 
-```mermaid
-flowchart TD
-    subgraph Frontend["Client Layer (React 18 + Vite)"]
-        direction TB
-        UI_Patient["👤 Patient Portal\n(/my-appointments, /booking)"]
-        UI_Doctor["🩺 Doctor Portal\n(/doctor-dashboard)"]
-        UI_Admin["🛡️ Admin Panel\n(/admin)"]
-        UI_Health["🟢 Live Health Monitor\n(/components/SystemStatusBanner)"]
-    end
-
-    subgraph Backend["Server Layer (Express.js REST API)"]
-        direction TB
-        MW_Logger["📋 requestLogger Middleware\n[METHOD] [PATH] [TIMESTAMP]"]
-        API_Routes["🔀 REST API Endpoints\n• /api/v1/doctors\n• /api/v1/appointments\n• /api/v1/auth\n• /api/v1/health"]
-        MW_Error["🛡️ Global Error Handler\nStructured JSON Formatter"]
-    end
-
-    subgraph Database["Persistence Layer (Dual-Mode Engine)"]
-        direction TB
-        DB_Mongo[("🍃 MongoDB Server\n(Mongoose ODM)")]
-        DB_Memory[("⚡ In-Memory Fallback\n(Auto-Active)")]
-    end
-
-    UI_Patient -->|HTTP POST/GET Requests| MW_Logger
-    UI_Doctor -->|HTTP PATCH Status Updates| MW_Logger
-    UI_Admin -->|HTTP CRUD Operations| MW_Logger
-    UI_Health -.->|Periodic Health Ping| API_Routes
-
-    MW_Logger --> API_Routes
-    API_Routes -->|Primary Mode| DB_Mongo
-    API_Routes -.->|Offline Mode| DB_Memory
-    API_Routes -->|Validation / Server Error| MW_Error
-    MW_Error -->|Structured Error Response| UI_Patient
+```text
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                                CLIENT LAYER (React 18 + Vite)                    │
+│   ┌─────────────────────┐   ┌─────────────────────┐   ┌──────────────────────┐   │
+│   │  👤 Patient Portal  │   │  🩺 Doctor Portal   │   │  🛡️ Admin Dashboard  │   │
+│   │  - Book Future Slot │   │  - Accept / Decline │   │  - Hospital Overview │   │
+│   │  - Live Status Track│   │  - Duty Availability│   │  - Doctor Roster     │   │
+│   └──────────┬──────────┘   └──────────┬──────────┘   └──────────┬───────────┘   │
+└──────────────┼─────────────────────────┼─────────────────────────┼───────────────┘
+               │                         │                         │
+               ▼                         ▼                         ▼
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                       MIDDLEWARE & ROUTING LAYER (Express.js)                    │
+│   ┌──────────────────────────────────────────────────────────────────────────┐   │
+│   │  📋 requestLogger: [METHOD] [PATH] [TIMESTAMP] (Global Logger)           │   │
+│   └────────────────────────────────────┬─────────────────────────────────────┘   │
+│                                        ▼                                         │
+│   ┌──────────────────────────────────────────────────────────────────────────┐   │
+│   │  🔀 REST API Controllers: /doctors | /appointments | /auth | /admin     │   │
+│   └────────────────────────────────────┬─────────────────────────────────────┘   │
+│                                        ▼                                         │
+│   ┌──────────────────────────────────────────────────────────────────────────┐   │
+│   │  🛡️ Structured Global Error Handler (JSON Errors & HTTP 400/500 Codes)   │   │
+│   └──────────────────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────┬─────────────────────────────────────────┘
+                                         │
+                                         ▼
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                      PERSISTENCE LAYER (Dual-Engine Fallback)                    │
+│   ┌───────────────────────────────────┐    ┌─────────────────────────────────┐   │
+│   │  🍃 MongoDB Server (Primary)      │    │  ⚡ In-Memory Engine (Fallback) │   │
+│   │  - Mongoose ODM Validation        │ OR │  - Instant Zero-Config Fallback │   │
+│   │  - Collections: Patients, Doctors │    │  - Automatic Mock Data Store    │   │
+│   └───────────────────────────────────┘    └─────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
-
-## 👥 3 Distinct Portals & Role Workflows
-
-```
-┌───────────────────────────┐   ┌───────────────────────────┐   ┌───────────────────────────┐
-│     👤 PATIENT PORTAL     │   │     🩺 DOCTOR PORTAL      │   │    🛡️ ADMIN CONTROL CTR   │
-├───────────────────────────┤   ├───────────────────────────┤   ├───────────────────────────┤
-│ • Book Future Slots       │   │ • Accept / Decline Slots  │   │ • Global Status Override  │
-│ • Live Status Tracking    │   │ • Duty / Availability     │   │ • Add / Remove Doctors    │
-│ • Profile Auto-Prefill    │   │ • Filtered Request Tabs   │   │ • Full Patient Registry   │
-│ • Cancel Pending Requests │   │ • Patient Medical Reasons │   │ • Real-Time Analytics     │
-└───────────────────────────┘   └───────────────────────────┘   └───────────────────────────┘
-```
 
 ### 1. 👤 Patient Portal (`/my-appointments` & `/booking`)
 * **Live Decision Badges**: Patients track doctor decisions in real-time:
