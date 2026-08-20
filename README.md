@@ -98,41 +98,50 @@ You can instantly switch between roles using the **Role Switcher Dropdown** in t
 
 ## 📐 System Architecture & Data Flow
 
-```text
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│                                CLIENT LAYER (React 18 + Vite)                    │
-│   ┌─────────────────────┐   ┌─────────────────────┐   ┌──────────────────────┐   │
-│   │  👤 Patient Portal  │   │  🩺 Doctor Portal   │   │  🛡️ Admin Dashboard  │   │
-│   │  - Book Future Slot │   │  - Accept / Decline │   │  - Hospital Overview │   │
-│   │  - Live Status Track│   │  - Duty Availability│   │  - Doctor Roster     │   │
-│   └──────────┬──────────┘   └──────────┬──────────┘   └──────────┬───────────┘   │
-└──────────────┼─────────────────────────┼─────────────────────────┼───────────────┘
-               │                         │                         │
-               ▼                         ▼                         ▼
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│                       MIDDLEWARE & ROUTING LAYER (Express.js)                    │
-│   ┌──────────────────────────────────────────────────────────────────────────┐   │
-│   │  📋 requestLogger: [METHOD] [PATH] [TIMESTAMP] (Global Request Logger)   │   │
-│   └────────────────────────────────────┬─────────────────────────────────────┘   │
-│                                        ▼                                         │
-│   ┌──────────────────────────────────────────────────────────────────────────┐   │
-│   │  🔀 REST API Controllers: /doctors | /appointments | /auth | /admin     │   │
-│   └────────────────────────────────────┬─────────────────────────────────────┘   │
-│                                        ▼                                         │
-│   ┌──────────────────────────────────────────────────────────────────────────┐   │
-│   │  🛡️ Structured Global Error Handler (JSON Errors & HTTP 400/500 Codes)   │   │
-│   └──────────────────────────────────────────────────────────────────────────┘   │
-└────────────────────────────────────────┬─────────────────────────────────────────┘
-                                         │
-                                         ▼
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│                      PERSISTENCE LAYER (Dual-Engine Fallback)                    │
-│   ┌───────────────────────────────────┐    ┌─────────────────────────────────┐   │
-│   │  🍃 MongoDB Server (Primary)      │    │  ⚡ In-Memory Engine (Fallback) │   │
-│   │  - Mongoose ODM Validation        │ OR │  - Instant Zero-Config Fallback │   │
-│   │  - Collections: Patients, Doctors │    │  - Automatic Mock Data Store    │   │
-│   └───────────────────────────────────┘    └─────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    classDef client fill:#ecfdf5,stroke:#059669,stroke-width:2px,color:#065f46,font-weight:bold,rx:8;
+    classDef middleware fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1e40af,font-weight:bold,rx:8;
+    classDef api fill:#faf5ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8,font-weight:bold,rx:8;
+    classDef storage fill:#f0fdfa,stroke:#0d9488,stroke-width:2px,color:#115e59,font-weight:bold,rx:8;
+    classDef error fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#991b1b,font-weight:bold,rx:8;
+
+    subgraph Layer1 ["1️⃣ CLIENT PRESENTATION LAYER (React 18 + Vite)"]
+        Patient["👤 Patient Portal\n• Future-Only Booking\n• Live Status Tracking"]:::client
+        Doctor["🩺 Doctor Portal\n• Accept / Decline Slots\n• Duty Status Toggle"]:::client
+        Admin["🛡️ Admin Dashboard\n• Global Appointment Control\n• Doctor Roster Management"]:::client
+    end
+
+    subgraph Layer2 ["2️⃣ MIDDLEWARE & PIPELINE LAYER (Express.js)"]
+        Logger["📋 Global requestLogger\nLogs: [METHOD] [PATH] [TIMESTAMP]"]:::middleware
+    end
+
+    subgraph Layer3 ["3️⃣ CONTROLLER & BUSINESS LOGIC LAYER"]
+        DocController["🩺 Doctors Controller\nGET /api/v1/doctors"]:::api
+        AptController["📅 Appointments Controller\nGET, POST & PATCH /api/v1/appointments"]:::api
+        ErrHandler["🛡️ Global Error Handler\nStructured JSON Error Formatter"]:::error
+    end
+
+    subgraph Layer4 ["4️⃣ PERSISTENCE LAYER (Dual-Mode Engine)"]
+        MongoPrimary[("🍃 MongoDB Database\nMongoose ODM Validation & Refs")]:::storage
+        MemoryFallback[("⚡ In-Memory Engine\nAutomatic Zero-Config Fallback")]:::storage
+    end
+
+    Patient -->|HTTP POST / GET| Logger
+    Doctor -->|HTTP PATCH Status| Logger
+    Admin -->|HTTP CRUD Ops| Logger
+
+    Logger --> DocController
+    Logger --> AptController
+
+    AptController -->|Primary Connection| MongoPrimary
+    AptController -.->|Offline Fallback| MemoryFallback
+    DocController -->|Fetch Specialists| MongoPrimary
+    DocController -.->|Offline Fallback| MemoryFallback
+
+    AptController -->|Validation Failure / 400| ErrHandler
+    DocController -->|Server Exception / 500| ErrHandler
+    ErrHandler -->|Structured Error Response| Patient
 ```
 
 ---
